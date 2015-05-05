@@ -25,19 +25,19 @@ function localfile(list, path, options) {
 
 	// TODO: implement filtering, usage disabled for now
 	options.nofilter = true;
-	
+
 	// TODO: implement initial form, usage disabled for now
 	if (options.initial) {
 		throw new Error('Invalid Configuration\n\n' +
 			'localfile fields (' + list.key + '.' + path + ') do not currently support being used as initial fields.\n');
 	}
-	
+
 	if (options.overwrite !== false) {
 		options.overwrite = true;
 	}
-	
+
 	localfile.super_.call(this, list, path, options);
-	
+
 	// validate destination dir
 	if (!options.dest) {
 		throw new Error('Invalid Configuration\n\n' +
@@ -47,11 +47,11 @@ function localfile(list, path, options) {
 	if (options.pre && options.pre.move) {
 		this.pre('move', options.pre.move);
 	}
-	
+
 	if (options.post && options.post.move) {
 		this.post('move', options.post.move);
 	}
-	
+
 }
 
 /*!
@@ -69,10 +69,10 @@ util.inherits(localfile, super_);
  */
 
 localfile.prototype.addToSchema = function() {
-	
+
 	var field = this,
 		schema = this.list.schema;
-	
+
 	var paths = this.paths = {
 		// fields
 		filename:		this._path.append('.filename'),
@@ -80,23 +80,25 @@ localfile.prototype.addToSchema = function() {
 		path:			this._path.append('.path'),
 		size:			this._path.append('.size'),
 		filetype:		this._path.append('.filetype'),
+		prefix:		this._path.append('.prefix'),
 		// virtuals
 		exists:			this._path.append('.exists'),
 		href:			this._path.append('.href'),
 		upload:			this._path.append('_upload'),
 		action:			this._path.append('_action')
 	};
-	
+
 	var schemaPaths = this._path.addTo({}, {
 		filename:		String,
 		originalname:   String,
 		path:			String,
 		size:			Number,
-		filetype:		String
+		filetype:		String,
+		prefix: String
 	});
-	
+
 	schema.add(schemaPaths);
-	
+
 	// exists checks for a matching file at run-time
 	var exists = function(item) {
 		var filepath = item.get(paths.path),
@@ -108,17 +110,17 @@ localfile.prototype.addToSchema = function() {
 
 		return fs.existsSync(path.join(filepath, filename));
 	};
-	
+
 	// The .exists virtual indicates whether a file is stored
 	schema.virtual(paths.exists).get(function() {
 		return schemaMethods.exists.apply(this);
 	});
-	
+
 	// The .href virtual returns the public path of the file
 	schema.virtual(paths.href).get(function() {
 		return field.href.call(field, this);
 	});
-	
+
 	// reset clears the value of the field
 	var reset = function(item) {
 		item.set(field.path, {
@@ -265,13 +267,13 @@ localfile.prototype.uploadFile = function(item, file, update, callback) {
 	}
 
 	var doMove = function(callback) {
-		
+
 		if ('function' === typeof field.options.filename) {
 			filename = field.options.filename(item, file);
 		}
 
 		fs.move(file.path, path.join(field.options.dest, filename), { clobber: field.options.overwrite }, function(err) {
-			
+
 			if (err) return callback(err);
 
 			var fileData = {
@@ -287,7 +289,7 @@ localfile.prototype.uploadFile = function(item, file, update, callback) {
 			}
 
 			callback(null, fileData);
-			
+
 		});
 	};
 
